@@ -10,4 +10,4 @@ report folder contains the overleaf report pdf
 
 run.py is the code in which results are produced (main coding file)
 
-src contains python code for data cleaning and generation of missing data (methods called in run.py)
+src folder contains python code for data cleaning and generation of missing data (methods called in run.py). It also contains the models for ensuring that the model is fair and producing predictions so that fairness notion measurements can be produced. 
