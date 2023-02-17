@@ -36,7 +36,6 @@ def model(train, test, cats):
     # concatenate train OHE features with non-cat features
     train_feats = pd.DataFrame(np.concatenate([train_ohe.todense(), train_num_feats], axis = 1))
     train_feats['complainant_ethnicity'] = (train['complainant_ethnicity'] == "White").tolist()
-    train_feats['complainant_gender'] = (train['complainant_gender'] == "Male").tolist()
     y_train = train.substantiated.values.astype('int')
     
     mod = LogisticRegression(C = 1.0, class_weight='balanced')
@@ -56,7 +55,6 @@ def model(train, test, cats):
     # concatenate test OHE features with non-cat features
     test_feats = pd.DataFrame(np.concatenate([test_ohe.todense(), test_num_feats], axis = 1))
     test_feats['complainant_ethnicity'] = (test['complainant_ethnicity'] == "White").tolist()
-    test_feats['complainant_gender'] = (test['complainant_gender'] == "Male").tolist()
     y_test = test.substantiated.values.astype('int')
     
     pred = mod.predict(test_feats)
@@ -65,10 +63,18 @@ def model(train, test, cats):
     odds = average_odds_difference(pd.Series(y_test), pd.Series(pred))
     opportunity = equal_opportunity_difference(pd.Series(y_test), pd.Series(pred))
     
+    def accuracy(pred, actual):
+        assert len(pred) == len(actual)
+        corr = 0
+        for i in range(len(pred)):
+            if pred[i] == actual[i]:
+                corr += 1
+        return corr / len(pred)
     
-    print("statistical parity: " + str(parity))
-    print("Equality of odds: " + str(odds))
-    print("Equality of opportunity: " + str(opportunity))
+    print("accuracy: " + str(accuracy(pred, y_test)))
+    print("atatistical parity: " + str(parity))
+    print("equality of odds: " + str(odds))
+    print("equality of opportunity: " + str(opportunity))
     
     
     return [parity,odds,opportunity]
@@ -94,7 +100,6 @@ def model_missing(train, test, cats):
     # concatenate train OHE features with non-cat features
     train_feats = pd.DataFrame(np.concatenate([train_ohe.todense(), train_num_feats], axis = 1))
     train_feats['complainant_ethnicity'] = (train['complainant_ethnicity'] == "White").tolist()
-    train_feats['complainant_gender'] = (train['complainant_gender'] == "Male").tolist()
     y_train = train.substantiated.values.astype('int')
     
     mod = HistGradientBoostingClassifier()
@@ -114,7 +119,6 @@ def model_missing(train, test, cats):
     # concatenate test OHE features with non-cat features
     test_feats = pd.DataFrame(np.concatenate([test_ohe.todense(), test_num_feats], axis = 1))
     test_feats['complainant_ethnicity'] = (test['complainant_ethnicity'] == "White").tolist()
-    test_feats['complainant_gender'] = (test['complainant_gender'] == "Male").tolist()
     y_test = test.substantiated.values.astype('int')
     
     pred = mod.predict(test_feats)
@@ -123,10 +127,18 @@ def model_missing(train, test, cats):
     odds = average_odds_difference(pd.Series(y_test), pd.Series(pred))
     opportunity = equal_opportunity_difference(pd.Series(y_test), pd.Series(pred))
     
+    def accuracy(pred, actual):
+        assert len(pred) == len(actual)
+        corr = 0
+        for i in range(len(pred)):
+            if pred[i] == actual[i]:
+                corr += 1
+        return corr / len(pred)
     
+    print("accuracy: " + str(accuracy(pred, y_test)))
     print("statistical parity: " + str(parity))
-    print("Equality of odds: " + str(odds))
-    print("Equality of opportunity: " + str(opportunity))
+    print("equality of odds: " + str(odds))
+    print("equality of opportunity: " + str(opportunity))
     
     
     return [parity,odds,opportunity]
