@@ -77,11 +77,7 @@ def model(train, test, cats):
     print("equality of opportunity: " + str(opportunity))
     
     
-<<<<<<< HEAD
     return [accuracy(pred, y_test),parity,odds,opportunity]
-=======
-    return [parity,odds,opportunity]
->>>>>>> ea230a069629d60e2d13335a75246535f4f5af9d
 
 # In[ ]:
 
@@ -145,8 +141,4 @@ def model_missing(train, test, cats):
     print("equality of opportunity: " + str(opportunity))
     
     
-<<<<<<< HEAD
     return [accuracy(pred, y_test),parity,odds,opportunity]
-=======
-    return [parity,odds,opportunity]
->>>>>>> ea230a069629d60e2d13335a75246535f4f5af9d
