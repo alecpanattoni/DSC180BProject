@@ -1,0 +1,11 @@
+,complaint_id,complainant_ethnicity,complainant_gender,complainant_age_incident,allegation,contact_reason,board_disposition
+0,33,Other,Female,71.0,a,h,not
+1,7,Black,Male,57.0,d,u,Substantiated
+2,27,Asian,Female,66.0,x,k,Substantiated
+3,36,Other,Female,70.0,w,a,Substantiated
+4,19,Hispanic,Female,19.0,b,x,not
+5,79,Black,Female,36.0,t,i,not
+6,11,Hispanic,Male,83.0,c,z,Substantiated
+7,9,Other,Female,67.0,j,f,not
+8,37,Hispanic,Female,5.0,m,n,Substantiated
+9,85,Asian,Male,41.0,z,o,not
