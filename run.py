@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[5]:
 
 
 import pandas as pd
@@ -19,14 +19,14 @@ from aif360.sklearn.metrics import average_odds_difference
 from aif360.sklearn.metrics import equal_opportunity_difference
 
 
-# In[2]:
+# In[ ]:
 
 
 data = datacleaning.cleaning(os.path.join(os.path.dirname(
     os.path.realpath('run.py')) + '/data/allegations_raw.csv'))
 
 
-# In[3]:
+# In[ ]:
 
 
 target = sys.argv[1]
@@ -40,19 +40,19 @@ if target == "all":
         os.path.realpath('run.py')) + '/data/allegations_raw.csv'))
 
 
-# In[4]:
+# In[ ]:
 
 
 data.isna().sum()
 
 
-# In[5]:
+# In[ ]:
 
 
 data.head()
 
 
-# In[6]:
+# In[ ]:
 
 
 train, test = train_test_split(data, train_size=0.8)
@@ -62,58 +62,58 @@ train, test = train_test_split(data, train_size=0.8)
 
 # We want the attribute with missingness to have around the same proportion of missingness for each type. This is because we don't want the amount of missingness to be a confounding factor in our results.
 
-# In[7]:
+# In[ ]:
 
 
 t = train.copy()
 mcar = data_generation.mcar(t, 'substantiated')
 
 
-# In[8]:
+# In[ ]:
 
 
 mcar['substantiated'].isna().sum() / mcar.shape[0]
 
 
-# In[9]:
+# In[ ]:
 
 
 mcar = mcar.dropna(subset = 'substantiated')
 
 
-# In[10]:
+# In[ ]:
 
 
 t = train.copy()
 mar = data_generation.mar(t, 'substantiated', 'complainant_ethnicity', 0.3)
 
 
-# In[11]:
+# In[ ]:
 
 
 mar['substantiated'].isna().sum() / mar.shape[0]
 
 
-# In[12]:
+# In[ ]:
 
 
 mar = mar.dropna(subset = 'substantiated')
 
 
-# In[13]:
+# In[ ]:
 
 
 t = train.copy()
 nmar = data_generation.nmar(t, 'substantiated', 0.3)
 
 
-# In[14]:
+# In[ ]:
 
 
 nmar['substantiated'].isna().sum() / nmar.shape[0]
 
 
-# In[15]:
+# In[ ]:
 
 
 nmar = nmar.dropna(subset = 'substantiated')
@@ -124,7 +124,7 @@ nmar = nmar.dropna(subset = 'substantiated')
 # ## Applying Fairness Notions
 # 
 
-# In[16]:
+# In[ ]:
 
 
 cat = ["complainant_ethnicity", "complainant_age_incident", "allegation", "contact_reason"]
@@ -132,7 +132,7 @@ cat = ["complainant_ethnicity", "complainant_age_incident", "allegation", "conta
 
 # ### Calculating fairnes notions for No Missingness At All
 
-# In[18]:
+# In[ ]:
 
 
 #storing fairness notions for no missingness
@@ -141,7 +141,7 @@ no_missing = model_perform.model(train, test, cat)
 no_missing_fairness.append(no_missing)
 
 
-# In[19]:
+# In[ ]:
 
 
 no_missing
@@ -149,13 +149,13 @@ no_missing
 
 # ### Fairness notions for NMAR
 
-# In[20]:
+# In[ ]:
 
 
 train_nmar, test_nmar = train_test_split(nmar, test_size=0.2)
 
 
-# In[21]:
+# In[ ]:
 
 
 nmar_fairness = []
@@ -165,13 +165,13 @@ nmar_fairness.append(nmar_model)
 
 # ### Fairness notions for MCAR
 
-# In[22]:
+# In[ ]:
 
 
 train_mcar, test_mcar = train_test_split(mcar, test_size=0.2)
 
 
-# In[23]:
+# In[ ]:
 
 
 mcar_fairness = []
@@ -181,13 +181,13 @@ mcar_fairness.append(mcar_model)
 
 # ### Fairness notions for MAR
 
-# In[24]:
+# In[ ]:
 
 
 train_mar, test_mar = train_test_split(mar, test_size=0.2)
 
 
-# In[25]:
+# In[ ]:
 
 
 mar_fairness = []
@@ -195,7 +195,7 @@ mar_model = model_perform.model_missing(train_mar, test_mar, cat)
 mar_fairness.append(mar_model)
 
 
-# In[26]:
+# In[ ]:
 
 
 #put our fairness statistics into arrays for future usage
@@ -207,19 +207,19 @@ opp = [no_missing_fairness[0][3],nmar_fairness[0][3],mcar_fairness[0][3],mar_fai
 
 # ## Visualizing Our Results
 
-# In[27]:
+# In[ ]:
 
 
 import matplotlib.pyplot as plt
 
 
-# In[28]:
+# In[ ]:
 
 
 labels = ['No Missingess,', 'NMAR', 'MCAR', 'MAR']
 
 
-# In[29]:
+# In[ ]:
 
 
 plt.figure(figsize = (20, 10))
@@ -230,7 +230,7 @@ plt.ylim(min(par) - 0.1, max(par) + 0.1)
 plt.plot(labels, par, marker='.', markersize = 20)
 
 
-# In[30]:
+# In[ ]:
 
 
 plt.figure(figsize = (20, 10))
@@ -241,7 +241,7 @@ plt.ylim(min(odds)-0.1,max(odds) + 0.1)
 plt.plot(labels, odds, marker='.', markersize = 20)
 
 
-# In[31]:
+# In[ ]:
 
 
 plt.figure(figsize = (20, 10))
@@ -252,7 +252,7 @@ plt.ylim(min(opp)-0.1,max(opp) + 0.1)
 plt.plot(labels, opp, marker='.', markersize = 20)
 
 
-# In[32]:
+# In[ ]:
 
 
 plt.figure(figsize = (20, 10))
