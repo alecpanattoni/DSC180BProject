@@ -113,7 +113,7 @@ mcar = mcar.dropna(subset = 'substantiated')
 
 
 mar = data.copy()
-mar = data_generation.mar(mar, 'substantiated', 'complainant_ethnicity', 0.3)
+mar = data_generation.mar(mar, 'substantiated', 'complainant_gender', 0.3)
 
 
 # In[11]:
@@ -161,7 +161,7 @@ nypd = data.dropna()
 # In[17]:
 
 
-cat = ["complainant_ethnicity", "complainant_gender", "complainant_age_incident", "allegation", "contact_reason"]
+cat = ["complainant_gender", "complainant_age_incident", "allegation", "contact_reason"]
 
 
 # In[44]:
@@ -184,7 +184,6 @@ def model(train, test, cats):
     
     # concatenate train OHE features with non-cat features
     train_feats = pd.DataFrame(np.concatenate([train_ohe.todense(), train_num_feats], axis = 1))
-    train_feats['complainant_ethnicity'] = (train['complainant_ethnicity'] == "White").tolist()
     train_feats['complainant_gender'] = (train['complainant_gender'] == "Male").tolist()
     y_train = train.substantiated.values.astype('int')
     
@@ -204,7 +203,6 @@ def model(train, test, cats):
         
     # concatenate test OHE features with non-cat features
     test_feats = pd.DataFrame(np.concatenate([test_ohe.todense(), test_num_feats], axis = 1))
-    test_feats['complainant_ethnicity'] = (test['complainant_ethnicity'] == "White").tolist()
     test_feats['complainant_gender'] = (test['complainant_gender'] == "Male").tolist()
     y_test = test.substantiated.values.astype('int')
     
@@ -304,7 +302,7 @@ def model(train, test, cats):
 # In[43]:
 
 
-cats = ["complainant_ethnicity", "complainant_gender", "complainant_age_incident", "allegation", "contact_reason"]
+cats = ["complainant_gender", "complainant_age_incident", "allegation", "contact_reason"]
 
 # Split data into train and test
     
@@ -323,8 +321,6 @@ model(train, test, cats)
 
 # In[26]:
 
-
-train['substantiated']
 
 
 # In[ ]:
@@ -359,7 +355,6 @@ def model_missing(train, test, cats):
     
     # concatenate train OHE features with non-cat features
     train_feats = pd.DataFrame(np.concatenate([train_ohe.todense(), train_num_feats], axis = 1))
-    train_feats['complainant_ethnicity'] = (train['complainant_ethnicity'] == "White").tolist()
     train_feats['complainant_gender'] = (train['complainant_gender'] == "Male").tolist()
     y_train = train.substantiated.values.astype('int')
     
@@ -379,7 +374,6 @@ def model_missing(train, test, cats):
         
     # concatenate test OHE features with non-cat features
     test_feats = pd.DataFrame(np.concatenate([test_ohe.todense(), test_num_feats], axis = 1))
-    test_feats['complainant_ethnicity'] = (test['complainant_ethnicity'] == "White").tolist()
     test_feats['complainant_gender'] = (test['complainant_gender'] == "Male").tolist()
     y_test = test.substantiated.values.astype('int')
     

@@ -15,8 +15,8 @@ def cleaning(fp):
     # create substantiated column (serves as boolean for prediction)
     allegations["substantiated"] = allegations["board_disposition"].str.startswith("Sub")
     # drop columns unnecessary for application of fairness intervention
-    allegations = allegations[['complaint_id', 'complainant_ethnicity', 'complainant_age_incident',
-       'allegation', 'contact_reason', 'substantiated']]
+    allegations = allegations[['complaint_id', 'complainant_age_incident',
+       'allegation', 'contact_reason', 'substantiated', 'complainant_gender']]
     # start with no missing data
     allegations = allegations.dropna()
     return allegations
