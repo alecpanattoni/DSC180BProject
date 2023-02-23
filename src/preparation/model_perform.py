@@ -7,8 +7,8 @@
 import pandas as pd
 import os
 import sys
-from src.cleaning import datacleaning
 from src import data_generation
+from src.cleaning import datacleaning
 import pandas as pd
 import numpy as np
 
@@ -59,6 +59,7 @@ tf.disable_eager_execution()
 data = datacleaning.cleaning(os.path.join(os.path.dirname(
     os.path.realpath('run.py')) + '/data/allegations_raw.csv'))
 
+print(data.columns)
 
 # In[4]:
 
@@ -72,7 +73,6 @@ if target == "test":
 if target == "all":
     data = datacleaning.cleaning(os.path.join(os.path.dirname(
         os.path.realpath('run.py')) + '/data/allegations_raw.csv'))
-
 
 # In[5]:
 
@@ -110,7 +110,6 @@ mcar = mcar.dropna(subset = 'substantiated')
 
 
 # In[10]:
-
 
 mar = data.copy()
 mar = data_generation.mar(mar, 'substantiated', 'complainant_gender', 0.3)
@@ -263,6 +262,9 @@ def model(train, test, cats):
     
     
     # Create a BinaryLabelDataset object from the train and test data
+    display(pd.DataFrame(train_enc).head())
+    print(train)
+    display(pd.DataFrame(train['substantiated']).head())
     train_bld = BinaryLabelDataset(df=pd.concat([pd.DataFrame(train_enc), pd.DataFrame(train['substantiated'])], axis=1),
                                    label_names=['substantiated'], protected_attribute_names=['complainant_gender'],
                                    favorable_label=1, unfavorable_label=0,
