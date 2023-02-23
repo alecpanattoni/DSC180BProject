@@ -5,12 +5,11 @@
 
 
 import pandas as pd
+import numpy as np
 import os
 import sys
 from src import data_generation
 from src.cleaning import datacleaning
-import pandas as pd
-import numpy as np
 
 import aif360
 from aif360.algorithms.preprocessing.reweighing import Reweighing
@@ -20,14 +19,11 @@ from aif360.sklearn.metrics import statistical_parity_difference
 from aif360.sklearn.metrics import average_odds_difference
 from aif360.sklearn.metrics import equal_opportunity_difference
 from aif360.algorithms.inprocessing.adversarial_debiasing import AdversarialDebiasing
-from aif360.sklearn.datasets import fetch_adult
 from aif360.sklearn.metrics import disparate_impact_ratio, average_odds_error, generalized_fpr
 from aif360.sklearn.metrics import generalized_fnr, difference
 
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import HistGradientBoostingClassifier
-
 
 from aif360.datasets import BinaryLabelDataset
 from aif360.metrics import BinaryLabelDatasetMetric
@@ -46,239 +42,48 @@ import matplotlib.pyplot as plt
 import tensorflow.compat.v1 as tf
 tf.disable_eager_execution()
 
-
-# In[ ]:
-
-
-
-
-
-# In[3]:
-
-
-data = datacleaning.cleaning(os.path.join(os.path.dirname(
-    os.path.realpath('run.py')) + '/data/allegations_raw.csv'))
-
-print(data.columns)
-
-# In[4]:
-
-
-target = sys.argv[1]
-
-if target == "test":
-    data = datacleaning.cleaning(os.path.join(os.path.dirname(
-        os.path.realpath('run.py')) + '/data/test.csv'))
-
-if target == "all":
-    data = datacleaning.cleaning(os.path.join(os.path.dirname(
-        os.path.realpath('run.py')) + '/data/allegations_raw.csv'))
-
-# In[5]:
-
-
-data.isna().sum()
-
-
-# In[6]:
-
-
-data.head()
-
-
-# ## Missingness Creation
-
-# We want the attribute with missingness to have around the same proportion of missingness for each type. This is because we don't want the amount of missingness to be a confounding factor in our results.
-
-# In[7]:
-
-
-mcar = data.copy()
-mcar = data_generation.mcar(mcar, 'substantiated')
-
-
-# In[8]:
-
-
-mcar['substantiated'].isna().sum() / mcar.shape[0]
-
-
-# In[9]:
-
-
-mcar = mcar.dropna(subset = 'substantiated')
-
-
-# In[10]:
-
-mar = data.copy()
-mar = data_generation.mar(mar, 'substantiated', 'complainant_gender', 0.3)
-
-
-# In[11]:
-
-
-mar['substantiated'].isna().sum() / mar.shape[0]
-
-
-# In[12]:
-
-
-mar = mar.dropna(subset = 'substantiated')
-
-
-# In[13]:
-
-
-nmar = data.copy()
-nmar = data_generation.nmar(nmar, 'substantiated', 0.3)
-
-
-# In[14]:
-
-
-nmar['substantiated'].isna().sum() / nmar.shape[0]
-
-
-# In[15]:
-
-
-nmar = nmar.dropna(subset = 'substantiated')
-
-
-# Now we will "handle" the missingness by dropping missing values.
-
-# ## Applying Fairness Notions
-# 
-
-# In[16]:
-
-
-nypd = data.dropna()
-
-
-# In[17]:
-
-
-cat = ["complainant_gender", "complainant_age_incident", "allegation", "contact_reason"]
-
-
-# In[44]:
-
-
-# model for finding fairness notions when no NaN values are not present in the data
-def model(train, test, cats):
-    ohe = OneHotEncoder(handle_unknown='ignore')
-    
-    traincat_df = train[cats]
-    # OHE train categorical
-    train_ohe = ohe.fit_transform(traincat_df)
-    # concat non-cat train features
-    train_len = train.shape[0]
-
-    train_num_feats = np.concatenate(
-        [np.reshape(train.complainant_age_incident.values, (train_len, 1))
-        ], axis = 1
-    )
-    
-    # concatenate train OHE features with non-cat features
-    train_feats = pd.DataFrame(np.concatenate([train_ohe.todense(), train_num_feats], axis = 1))
-    train_feats['complainant_gender'] = (train['complainant_gender'] == "Male").tolist()
-    y_train = train.substantiated.values.astype('int')
-    
-    mod = LogisticRegression(C = 1.0, class_weight='balanced')
-    mod.fit(train_feats, y_train)
-    
-    testcat_df = test[cats]
-    # OHE train categorical
-    test_ohe = ohe.transform(testcat_df)
-    # concat non-cat train features
-    test_len = test.shape[0]
-
-    test_num_feats = np.concatenate(
-        [np.reshape(test.complainant_age_incident.values, (test_len, 1)),
-        ], axis = 1
-    )
-        
-    # concatenate test OHE features with non-cat features
-    test_feats = pd.DataFrame(np.concatenate([test_ohe.todense(), test_num_feats], axis = 1))
-    test_feats['complainant_gender'] = (test['complainant_gender'] == "Male").tolist()
-    y_test = test.substantiated.values.astype('int')
-    
-    pred = mod.predict(test_feats)
-    
-    parity = statistical_parity_difference(pd.Series(y_test), pd.Series(pred))
-    odds = average_odds_difference(pd.Series(y_test), pd.Series(pred))
-    opportunity = equal_opportunity_difference(pd.Series(y_test), pd.Series(pred))
-    
-    
-    print("statistical parity: " + str(parity))
-    print("Equality of odds: " + str(odds))
-    print("Equality of opportunity: " + str(opportunity))
-    
-    
-    return [parity,odds,opportunity]
-
-
-# In[ ]:
-
-
-
-
-
-# In[19]:
-
-
-
-
-
-# In[23]:
-
-
-
-
-
-# In[41]:
-
-
-from aif360.datasets import BinaryLabelDataset
-from aif360.metrics import BinaryLabelDatasetMetric
-from aif360.algorithms.inprocessing import AdversarialDebiasing
-from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from sklearn.metrics import accuracy_score
-from sklearn.impute import SimpleImputer
-import numpy as np
-import pandas as pd
 
 # nypd = pd.read_csv("https://raw.githubusercontent.com/IBM/AIF360/master/examples/data/compas/compas-scores-two-years.csv")
 
 def model(train, test, cats):
     
     # Encode categorical features
-    encoder = OneHotEncoder(drop='first')
-    train_enc = encoder.fit_transform(train).toarray()
-    test_enc = encoder.fit_transform(test).toarray()
-    
+    encoder = OneHotEncoder()
+    train_enc = pd.DataFrame(encoder.fit_transform(train[cats]).toarray())
+    test_enc = pd.DataFrame(encoder.fit_transform(test[cats]).toarray())
+    # still need to account for substantiated, age, and gender
+    other_train = train[['complainant_age_incident', 'complainant_gender', 'substantiated']]
+    other_test = test[['complainant_age_incident', 'complainant_gender', 'substantiated']]
+    other_train.index = range(len(train_enc))
+    other_test.index = range(len(test_enc))
+    # concatenate OHE features with other features
+    train = pd.concat([train_enc, other_train], axis = 1)
+    test = pd.concat([test_enc, other_test], axis = 1)
+    # convert booleans to integer boolean
+    train['complainant_gender'] = (train['complainant_gender'] == 'Male') * 1
+    test['complainant_gender'] = (test['complainant_gender'] == 'Male') * 1
+    train['substantiated'] = train['substantiated'] * 1
+    test['substantiated'] = test['substantiated'] * 1
+    display(train)
     
     # Create a BinaryLabelDataset object from the train and test data
-    display(pd.DataFrame(train_enc).head())
-    print(train)
-    display(pd.DataFrame(train['substantiated']).head())
-    train_bld = BinaryLabelDataset(df=pd.concat([pd.DataFrame(train_enc), pd.DataFrame(train['substantiated'])], axis=1),
+    #display(pd.DataFrame(train['substantiated']).head())
+    train_bld = BinaryLabelDataset(df= train,
                                    label_names=['substantiated'], protected_attribute_names=['complainant_gender'],
                                    favorable_label=1, unfavorable_label=0,
                                    privileged_protected_attributes=[1])
-    test_bld = BinaryLabelDataset(df=pd.concat([pd.DataFrame(test_enc), test['substantiated']], axis=1),
+    test_bld = BinaryLabelDataset(df= test,
                                   label_names=['substantiated'], protected_attribute_names=['complainant_gender'],
                                   favorable_label=1, unfavorable_label=0,
                                   privileged_protected_attributes=[1])
 
     # Create the debiasing object
+    sess = tf.Session()
     debiased_model = AdversarialDebiasing(privileged_groups=[{'complainant_gender': 1}],
                                           unprivileged_groups=[{'complainant_gender': 0}],
                                           scope_name='debiased_classifier',
-                                          seed=0)
+                                          seed=0, sess = sess)
 
     # Train the debiased model
     debiased_model.fit(train_bld)
@@ -304,19 +109,14 @@ def model(train, test, cats):
 # In[43]:
 
 
-cats = ["complainant_gender", "complainant_age_incident", "allegation", "contact_reason"]
+cats = ["allegation", "contact_reason"]
 
 # Split data into train and test
     
-nypd = nypd.fillna(nypd.mode().iloc[0])
-nypd = nypd.dropna()
+nypd = data
 
 train = nypd.sample(frac=0.7, random_state=42)
 test = nypd.drop(train.index)
-
-imputer = SimpleImputer(strategy='most_frequent')
-train = imputer.fit_transform(train[cats])
-test = imputer.transform(test[cats])
 
 model(train, test, cats)
 
@@ -338,60 +138,6 @@ model(train, test, cats)
 
 
 # In[19]:
-
-
-#model for finding fairness notions when no NaN values are present in the data
-def model_missing(train, test, cats):
-    ohe = OneHotEncoder(handle_unknown='ignore')
-    
-    traincat_df = train[cats]
-    # OHE train categorical
-    train_ohe = ohe.fit_transform(traincat_df)
-    # concat non-cat train features
-    train_len = train.shape[0]
-
-    train_num_feats = np.concatenate(
-        [np.reshape(train.complainant_age_incident.values, (train_len, 1))
-        ], axis = 1
-    )
-    
-    # concatenate train OHE features with non-cat features
-    train_feats = pd.DataFrame(np.concatenate([train_ohe.todense(), train_num_feats], axis = 1))
-    train_feats['complainant_gender'] = (train['complainant_gender'] == "Male").tolist()
-    y_train = train.substantiated.values.astype('int')
-    
-    mod = HistGradientBoostingClassifier()
-    mod.fit(train_feats, y_train)
-    
-    testcat_df = test[cats]
-    # OHE train categorical
-    test_ohe = ohe.transform(testcat_df)
-    # concat non-cat train features
-    test_len = test.shape[0]
-
-    test_num_feats = np.concatenate(
-        [np.reshape(test.complainant_age_incident.values, (test_len, 1)),
-        ], axis = 1
-    )
-        
-    # concatenate test OHE features with non-cat features
-    test_feats = pd.DataFrame(np.concatenate([test_ohe.todense(), test_num_feats], axis = 1))
-    test_feats['complainant_gender'] = (test['complainant_gender'] == "Male").tolist()
-    y_test = test.substantiated.values.astype('int')
-    
-    pred = mod.predict(test_feats)
-    
-    parity = statistical_parity_difference(pd.Series(y_test), pd.Series(pred))
-    odds = average_odds_difference(pd.Series(y_test), pd.Series(pred))
-    opportunity = equal_opportunity_difference(pd.Series(y_test), pd.Series(pred))
-    
-    
-    print("statistical parity: " + str(parity))
-    print("Equality of odds: " + str(odds))
-    print("Equality of opportunity: " + str(opportunity))
-    
-    
-    return [parity,odds,opportunity]
 
 
 # ### Calculating fairnes notions for No Missingness At All
@@ -423,7 +169,7 @@ train_nmar, test_nmar = train_test_split(nmar, test_size=0.2)
 
 
 nmar_fairness = []
-nmar_model = model_missing(train_nmar, test_nmar, cat)
+nmar_model = model(train_nmar, test_nmar, cat)
 nmar_fairness.append(nmar_model)
 
 
@@ -439,7 +185,7 @@ train_mcar, test_mcar = train_test_split(mcar, test_size=0.2)
 
 
 mcar_fairness = []
-mcar_model = model_missing(train_mcar, test_mcar, cat)
+mcar_model = model(train_mcar, test_mcar, cat)
 mcar_fairness.append(mcar_model)
 
 
@@ -455,7 +201,7 @@ train_mar, test_mar = train_test_split(mar, test_size=0.2)
 
 
 mar_fairness = []
-mar_model = model_missing(train_mar, test_mar, cat)
+mar_model = model(train_mar, test_mar, cat)
 mar_fairness.append(mar_model)
 
 
