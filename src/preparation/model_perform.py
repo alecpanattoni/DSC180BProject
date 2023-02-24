@@ -46,12 +46,15 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 # nypd = pd.read_csv("https://raw.githubusercontent.com/IBM/AIF360/master/examples/data/compas/compas-scores-two-years.csv")
 
+data = datacleaning.cleaning(os.path.join(os.path.dirname(
+    os.path.realpath('run.py')) + '/data/allegations_raw.csv'))
+
 def model(train, test, cats):
     
     # Encode categorical features
-    encoder = OneHotEncoder()
+    encoder = OneHotEncoder(handle_unknown='ignore')
     train_enc = pd.DataFrame(encoder.fit_transform(train[cats]).toarray())
-    test_enc = pd.DataFrame(encoder.fit_transform(test[cats]).toarray())
+    test_enc = pd.DataFrame(encoder.transform(test[cats]).toarray())
     # still need to account for substantiated, age, and gender
     other_train = train[['complainant_age_incident', 'complainant_gender', 'substantiated']]
     other_test = test[['complainant_age_incident', 'complainant_gender', 'substantiated']]
@@ -66,6 +69,7 @@ def model(train, test, cats):
     train['substantiated'] = train['substantiated'] * 1
     test['substantiated'] = test['substantiated'] * 1
     display(train)
+    display(test)
     
     # Create a BinaryLabelDataset object from the train and test data
     #display(pd.DataFrame(train['substantiated']).head())
@@ -84,6 +88,7 @@ def model(train, test, cats):
                                           unprivileged_groups=[{'complainant_gender': 0}],
                                           scope_name='debiased_classifier',
                                           seed=0, sess = sess)
+    #tf.get_variable_scope().reuse_variables()
 
     # Train the debiased model
     debiased_model.fit(train_bld)
