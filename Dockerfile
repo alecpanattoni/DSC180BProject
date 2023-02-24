@@ -14,7 +14,7 @@ USER jovyan
 
 # download necesaary packages
 
-RUN pip install --no-cache-dir numpy pandas aif360 sklearn
+RUN pip install --no-cache-dir numpy pandas aif360 sklearn tensorflow
 
 # Override command to disable running jupyter notebook at launch
 CMD ["/bin/bash"]
