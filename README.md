@@ -1,4 +1,4 @@
-When in the repo directory, in order to produce the test results, one can use target "test". In order to produce results with the downloaded data, target name "all" can be used. To make use of these targets, simply cd into the repo's director and input "python3 run <target>"
+When in the repo directory, in order to produce the test results, one can use target "test". In order to produce results with the downloaded data, target name "all" can be used. To make use of these targets, simply cd into the repo's director and input "python3 run.py <target>"
 
 The project directory contains the following:
 

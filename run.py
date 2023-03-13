@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[5]:
+# In[1]:
 
 
-import pandas as pd
 import os
 import sys
 from src.cleaning import datacleaning
@@ -13,20 +12,21 @@ from src.preparation import model_perform
 import pandas as pd
 import numpy as np
 import aif360
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from aif360.sklearn.metrics import statistical_parity_difference
 from aif360.sklearn.metrics import average_odds_difference
 from aif360.sklearn.metrics import equal_opportunity_difference
 
 
-# In[ ]:
+# In[2]:
 
 
 data = datacleaning.cleaning(os.path.join(os.path.dirname(
     os.path.realpath('run.py')) + '/data/allegations_raw.csv'))
 
 
-# In[ ]:
+# In[3]:
 
 
 target = sys.argv[1]
@@ -40,19 +40,19 @@ if target == "all":
         os.path.realpath('run.py')) + '/data/allegations_raw.csv'))
 
 
-# In[ ]:
+# In[4]:
 
 
 data.isna().sum()
 
 
-# In[ ]:
+# In[5]:
 
 
 data.head()
 
 
-# In[ ]:
+# In[6]:
 
 
 train, test = train_test_split(data, train_size=0.8)
@@ -62,58 +62,96 @@ train, test = train_test_split(data, train_size=0.8)
 
 # We want the attribute with missingness to have around the same proportion of missingness for each type. This is because we don't want the amount of missingness to be a confounding factor in our results.
 
-# In[ ]:
+# In[7]:
 
 
 t = train.copy()
-mcar = data_generation.mcar(t, 'substantiated')
+mcar = data_generation.mcar(t, 'complainant_gender')
 
 
-# In[ ]:
+# In[8]:
 
 
-mcar['substantiated'].isna().sum() / mcar.shape[0]
+mcar['complainant_gender'].isna().sum() / mcar.shape[0]
 
 
-# In[ ]:
+# In[10]:
 
 
-mcar = mcar.dropna(subset = 'substantiated')
+mcar = mcar.dropna(subset = 'complainant_gender')
 
 
-# In[ ]:
+# For MAR, we want to try to find attributes that are, ideally, highly correlated with both the sensitive attribute and the label outcome attribute. Let's first look into the complainant age attribute.
+
+# In[11]:
+
+
+for gender in ['Male', 'Female']:
+    for sub in [True, False]:
+        data[(data['complainant_gender'] == gender) & (
+            data['substantiated'] == sub)]['complainant_age_incident'].plot(kind='density', legend=True)
+    plt.legend(['MaleSub', 'MaleNot', 'FemaleSub', 'FemaleNot'])
+
+
+# It looks like complainant age is only highly correlated with the sensitive attribute, and not the outcome label. This will still work with the goal we have in mind, though. 
+
+# In[12]:
+
+
+for gender in ['Male', 'Female']:
+    data[(data['complainant_gender'] == gender)]['complainant_age_incident'].plot(kind='density', legend=True)
+plt.legend(['MaleSub', 'MaleNot', 'FemaleSub', 'FemaleNot'])
+
+
+# In order to add to the noticeability of MAR (where each category of our sensitive attribute has a different amount of missinness) we will only apply MAR missingness to the underprivileged group (females). Non-MAR missingness can be added to the privileged group to see how different types of missingness produce differences among the sensitive attribute.
+
+# In[13]:
 
 
 t = train.copy()
-mar = data_generation.mar(t, 'substantiated', 'complainant_ethnicity', 0.3)
+male = data_generation.mcar(t[t['complainant_gender'] == 'Male'], 'complainant_gender')
+female = data_generation.mar(t[t['complainant_gender'] == 'Female'], 'complainant_gender', 'substantiated', 0.2)
+for idx, i in enumerate(female.iterrows()):
+    # if S = 0 & Y = 1, add additional probability of missingness
+    if (i[1]['substantiated'] == True) and (i[1]['complainant_gender'] == 'Female'):
+        if np.random.choice([1, 0], p = [0.3, 0.7]) == 1:
+            female['complainant_gender'].iloc[idx] = np.nan
+mar = pd.concat([male, female])
+mar
 
 
-# In[ ]:
+# In[14]:
 
 
-mar['substantiated'].isna().sum() / mar.shape[0]
+#mar = data_generation.mar(t, 'substantiated', 'complainant_gender', 0.3)
 
 
-# In[ ]:
+# In[15]:
 
 
-mar = mar.dropna(subset = 'substantiated')
+mar['complainant_gender'].isna().sum() / mar.shape[0]
 
 
-# In[ ]:
+# In[17]:
+
+
+mar = mar.dropna(subset = 'complainant_gender')
+
+
+# In[18]:
 
 
 t = train.copy()
-nmar = data_generation.nmar(t, 'substantiated', 0.3)
+nmar = data_generation.nmar(t, 'complainant_gender', 0.3)
 
 
-# In[ ]:
+# In[19]:
 
 
-nmar['substantiated'].isna().sum() / nmar.shape[0]
+nmar['complainant_gender'].isna().sum() / nmar.shape[0]
 
 
-# In[ ]:
+# In[21]:
 
 
 nmar = nmar.dropna(subset = 'substantiated')
@@ -124,102 +162,70 @@ nmar = nmar.dropna(subset = 'substantiated')
 # ## Applying Fairness Notions
 # 
 
-# In[ ]:
+# In[22]:
 
 
-cat = ["complainant_ethnicity", "complainant_age_incident", "allegation", "contact_reason"]
+cats = ["allegation", "contact_reason"]
 
 
 # ### Calculating fairnes notions for No Missingness At All
 
-# In[ ]:
+# In[23]:
 
 
 #storing fairness notions for no missingness
-no_missing_fairness = []
-no_missing = model_perform.model(train, test, cat)
-no_missing_fairness.append(no_missing)
-
-
-# In[ ]:
-
-
-no_missing
+no_missing_results = model_perform.model(train, test, cats)
 
 
 # ### Fairness notions for NMAR
 
-# In[ ]:
+# In[24]:
 
 
-train_nmar, test_nmar = train_test_split(nmar, test_size=0.2)
-
-
-# In[ ]:
-
-
-nmar_fairness = []
-nmar_model = model_perform.model_missing(train_nmar, test_nmar, cat)
-nmar_fairness.append(nmar_model)
+nmar_results = model_perform.model(nmar, test, cats)
 
 
 # ### Fairness notions for MCAR
 
-# In[ ]:
+# In[25]:
 
 
-train_mcar, test_mcar = train_test_split(mcar, test_size=0.2)
-
-
-# In[ ]:
-
-
-mcar_fairness = []
-mcar_model = model_perform.model_missing(train_mcar, test_mcar, cat)
-mcar_fairness.append(mcar_model)
+mcar_results = model_perform.model(mcar, test, cats)
 
 
 # ### Fairness notions for MAR
 
-# In[ ]:
+# In[26]:
 
 
-train_mar, test_mar = train_test_split(mar, test_size=0.2)
+mar_results = model_perform.model(mar, test, cats)
 
 
-# In[ ]:
+# In[27]:
 
 
-mar_fairness = []
-mar_model = model_perform.model_missing(train_mar, test_mar, cat)
-mar_fairness.append(mar_model)
-
-
-# In[ ]:
-
-
-#put our fairness statistics into arrays for future usage
-acc = [no_missing_fairness[0][0],nmar_fairness[0][0],mcar_fairness[0][0],mar_fairness[0][0]]
-par= [no_missing_fairness[0][1],nmar_fairness[0][1],mcar_fairness[0][1],mar_fairness[0][1]]
-odds= [no_missing_fairness[0][2],nmar_fairness[0][2],mcar_fairness[0][2],mar_fairness[0][2]]
-opp = [no_missing_fairness[0][3],nmar_fairness[0][3],mcar_fairness[0][3],mar_fairness[0][3]]
+nmar.head()
 
 
 # ## Visualizing Our Results
 
-# In[ ]:
+# In[28]:
 
 
-import matplotlib.pyplot as plt
+#put our fairness statistics into arrays for future usage
+acc = [no_missing_results[0],nmar_results[0],mcar_results[0],mar_results[0]]
+par= [no_missing_results[1],nmar_results[1],mcar_results[1],mar_results[1]]
+odds= [no_missing_results[2],nmar_results[2],mcar_results[2],mar_results[2]]
+opp = [no_missing_results[3],nmar_results[3],mcar_results[3],mar_results[3]]
 
 
-# In[ ]:
+# In[29]:
 
 
 labels = ['No Missingess,', 'NMAR', 'MCAR', 'MAR']
 
 
-# In[ ]:
+# In[30]:
 
 
 plt.figure(figsize = (20, 10))
@@ -230,7 +236,7 @@ plt.ylim(min(par) - 0.1, max(par) + 0.1)
 plt.plot(labels, par, marker='.', markersize = 20)
 
 
-# In[ ]:
+# In[31]:
 
 
 plt.figure(figsize = (20, 10))
@@ -241,7 +247,7 @@ plt.ylim(min(odds)-0.1,max(odds) + 0.1)
 plt.plot(labels, odds, marker='.', markersize = 20)
 
 
-# In[ ]:
+# In[32]:
 
 
 plt.figure(figsize = (20, 10))
@@ -252,7 +258,7 @@ plt.ylim(min(opp)-0.1,max(opp) + 0.1)
 plt.plot(labels, opp, marker='.', markersize = 20)
 
 
-# In[ ]:
+# In[33]:
 
 
 plt.figure(figsize = (20, 10))
