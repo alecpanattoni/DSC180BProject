@@ -26,7 +26,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler, MaxAbsScaler
 from sklearn.metrics import accuracy_score
 
-from IPython.display import Markdown, display
 import matplotlib.pyplot as plt
 
 import tensorflow.compat.v1 as tf
