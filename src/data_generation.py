@@ -76,7 +76,6 @@ def mar(dataset : pd.DataFrame, miss_column : str, dep_column : str, b = 0.5):
     if (dataset.dtypes.loc[dep_column] == object) or (dataset.dtypes.loc[dep_column] == bool):
         # generate probabilities -> sigmoid for each unique categorical value
         cat_dict = {cat: sig(np.random.normal()) for cat in dataset[dep_column].unique()}
-        print(cat_dict)
         
         # generate missingness based on generated probabilities
         for i in range(dataset.shape[0]):
@@ -84,7 +83,6 @@ def mar(dataset : pd.DataFrame, miss_column : str, dep_column : str, b = 0.5):
             if np.random.choice([1, 0], p = [cat_dict[dep_val] * b, 1 - (cat_dict[dep_val] * b)]) == 1:
                 dataset[miss_column].iloc[i] = np.nan
     else:
-        print('here')
         # normalize the value (create Z value)
         def norm(val, mean, std):
             return (val - mean) / std
@@ -140,7 +138,6 @@ def nmar(dataset : pd.DataFrame, column : str, b = 0.5):
     if (dataset.dtypes.loc[column] == object) or (dataset.dtypes.loc[column] == bool):
         # create probabilities based on normal distribution, passed through sigmoid
         cat_dict = {cat: sig(np.random.normal()) for cat in dataset[column].unique()}
-        print(cat_dict)
 
         # generate missing values based on probabilities calculated
         for i, val in enumerate(dataset[column]):
